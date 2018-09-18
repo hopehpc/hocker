@@ -162,12 +162,28 @@ Please consult the documentation for detailed information.</br>
 ## Acknowledgments
 Hocker was developed through the Summer Hope Academic Research Program in collaboration with Hope College Computing and Information Technology and the Midwest Undergraduate Computational Chemistry Consortium. 
 
-Hocker is based on [Socker 16.12](https://github.com/unioslo/socker) developed by the University of Oslo. 
+### Socker
+Hocker is based on [Socker 16.12](https://github.com/unioslo/socker) developed by the University of Oslo.
+
+Socker was originally written in Python 2 for use on CentOS 6. Hocker is written in Python 3 to anticipate the lifetime of our cluster and future support from the Python Software Foundation. Our modifications additionally support use on CentOS 7.
+
+In addition to porting Socker to Python 3, some notable modifications to Socker are included below.
+
+* The method of accessing user information is modified to account for irregularities between the host machine and the `os` module
+* Argument parsing through the `docopt` module is implemented to improve efficiency and increase the flexibility of the program
+* The `docker exec` command is added to provide flexibility within Docker commands
+* Authorized images are listed in files for each node within a directory, allowing for different nodes to run different images and the capability to search for authorized images on another node
+* Standard out and standard error are passed appropriately to the calling shell by default and get included in the Slurm output and error files
+* Various command line options are added for user convenience
 </br></br>
 
 ## Contact
 Zachary Snoek</br>
-zachary.snoek@hope.edu
+zachary.snoek@hope.edu</br></br>
+Brent Krueger</br>
+kruegerb@hope.edu</br></br>
+Hope College Computing and Information Technology</br>
+cit@hope.edu
 </br></br>
 
 ## Conventions
