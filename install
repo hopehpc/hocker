@@ -1,0 +1,366 @@
+#!/bin/bash
+#
+# Hocker - a secure HPC solution for running Docker containers at Hope College.
+#
+# Hocker version 1.0
+# Author: Zachary Snoek, Hope College
+# Contact: zachary.snoek@hope.edu
+#
+# install-hocker:
+# Installation script for Hocker. Installs all of the dependencies and
+# creates a bundled executable. The user can choose to install Hocker
+# in two ways: simple or full. The simple installation is for use on
+# one machine; the full installation is for use on an HPC cluster.
+
+echo ""
+echo "Hocker has two installation options:"
+echo ""
+echo "* Full:   For use on an HPC cluster"
+echo ""
+echo "* Simple: For use on one machine"
+echo ""
+echo "* Modified: Full installation without btools or Slurm"
+echo ""
+echo -n "Select full, simple, or modified installation for Hocker (f/s/m): "
+read selection
+
+if [[ "$selection" == "f" ]] || [[ "$selection" == "F" ]]
+then
+    echo ""
+    echo "Full installation selected"
+
+    echo ""
+    echo -n "Hocker will modify /etc/slurm/slurm.conf to replace previously declared 'Prolog' and 'Epilog' values. Continue (y/n)?: "
+    read answer
+
+    if [[ "$answer" != "y" ]] && [[ "$answer" != "Y" ]]
+    then
+        echo ""
+        echo "Terminating Hocker installation"
+        echo ""
+        exit 1
+    fi
+
+    installation=full
+elif [[ "$selection" == "s" ]] || [[ "$selection" == "S" ]]
+then
+    echo ""
+    echo "Simple installation selected"
+
+    installation=simple
+elif [[ "$selection" == "m" ]] || [[ "$selection" == "M" ]]
+then
+    echo ""
+    echo "Modified installation selected"
+
+    installation=modified
+else
+    echo ""
+    echo "'$selection' is not a valid option."
+    echo "Terminating Hocker installation"
+    echo ""
+    exit 1
+fi
+
+if [ "$installation" == "full" ]
+then 
+    echo ""
+    echo "Checking for btools and Slurm"
+    
+    # Check if btools is installed
+    if [ ! -e "/usr/local/sbin/bhosts" ] && \
+            [ -e "/usr/local/sbin/bfiles" ] && \
+            [ -e "/usr/local/sbin/bexec" ] && \
+            [ -e "/usr/local/sbin/bpush" ] && \
+            [ -e "/usr/local/sbin/bpushdir" ] && \
+            [ -e "/usr/local/sbin/brsh" ] && \
+            [ -e "/usr/local/sbin/bsync" ]
+    then
+        echo ""
+        echo "btools is not found or not correctly set up. Please set up btools before installing Hocker"
+        echo "btools can be found at: https://github.com/zachsnoek/btools"
+        echo "Terminating Hocker installation"
+        echo ""
+        exit 1
+    fi
+
+    # Check if Slurm is installed
+    if [ ! -e /etc/slurm/slurm.conf ]
+    then
+        echo ""
+        echo "Slurm must be installed. Please install Slurm before installing Hocker"
+        echo "A Slurm installation can be found at: https://github.com/zachsnoek/slurm-centos7"
+        echo "Terminating Hocker installation"
+        echo ""
+        exit 1
+    fi
+fi    
+
+# Check if Docker is installed
+ls /usr/bin | grep docker > /dev/null 2>&1
+if [ $? -ne 0 ] 
+then
+    echo ""
+    echo "Docker is not found in /usr/bin. Please install Docker before installing Hocker."
+    echo "Terminating Hocker installation"
+    echo ""
+    exit 1
+fi
+
+# Check for previous installations of Hocker and remove
+if [ -e "/usr/bin/hocker" ] && [ -e "/usr/bin/hocker1.0" ]
+then
+    echo ""
+    echo "Removing previous installation of Hocker"
+    rm -rf /usr/bin/hocker > /dev/null 2>&1
+    rm -rf /usr/bin/hocker1.0 > /dev/null 2>&1
+    rm -rf /admin/hocker-images/ > /dev/null 2>&1
+    rm -rf /tmp/hocker > /dev/null 2>&1
+    rm /etc/slurm/hocker-prolog > /dev/null 2>&1
+    rm /etc/slurm/hocker-epilog > /dev/null 2>&1
+
+    if [ "$installation" == "full" ]
+    then
+        echo ""
+        echo "Trying to remove previous installation of Hocker on compute nodes"
+        bexec rm -rf /usr/bin/hocker > /dev/null 2>&1
+        bexec rm -rf /usr/bin/hocker1.0 > /dev/null 2>&1
+        bexec rm -rf /admin/hocker-images > /dev/null 2>&1
+        bexec rm -rf /tmp/hocker > /dev/null 2>&1
+        bexec rm /etc/slurm/hocker-prolog > /dev/null 2>&1
+        bexec rm /etc/slurm/hocker-epilog > /dev/null 2>&1
+    fi
+fi
+
+cd files
+
+# Change path in hocker.spec to the current working directory
+echo ""
+echo "Changing path in hocker.spec to $PWD"
+sed -i "s|pathex=\['.*'\]|pathex=\['$PWD']|" hocker.spec
+
+# Create bundled executable of Hocker
+echo ""
+echo "Creating bundled executable of Hocker"
+echo ""
+pyinstaller hocker.spec
+
+echo ""
+echo "Hocker bundled executable has successfully been created"
+
+echo ""
+echo "Moving bundled executable to /usr/bin/"
+mv dist/hocker1.0 /usr/bin/
+
+# Set permissions on Hocker files
+echo ""
+echo "Changing permissions of hocker files in /usr/bin/hocker1.0/files"
+chmod 700 /usr/bin/hocker1.0/files/*
+
+echo ""
+echo "Creating a symlink from hocker1.0 bundle to /usr/bin/hocker"
+ln -s /usr/bin/hocker1.0/hocker /usr/bin/hocker
+
+# Create the Hocker group for authorized users of Hocker
+cat /etc/group | grep hocker > /dev/null
+if [ $? -eq 0 ] 
+then
+    echo ""
+    echo "hocker group exists. Skipping creation of group"
+    echo "Add users to the hocker group to allow access to Hocker"
+else
+    echo ""
+    echo "Creating hocker group. Add users to this group to allow access to Hocker"
+    groupadd -K GID_MIN=0 -K GID_MAX=999 hocker
+    chgrp hocker /usr/bin/hocker1.0/hocker
+fi
+
+echo ""
+echo "Changing permissions of hocker executable in /usr/bin/hocker1.0/hocker"
+chmod 6750 /usr/bin/hocker1.0/hocker
+
+# Create the dockerroot user
+id -u dockerroot > /dev/null
+if [ $? -eq 0 ] 
+then
+    echo ""
+    echo "dockerroot user exists. Skipping creation of user"
+    usermod -aG docker dockerroot > /dev/null 2>&1
+else
+    echo ""
+    echo "Creating dockerroot user to run Docker commands as"
+    useradd -K UID_MIN=1 -K UID_MAX=999 -K GID_MIN=1 -K GID_MAX=999 -M dockerroot > /dev/null 2>&1
+    usermod -aG docker dockerroot > /dev/null 2>&1
+fi
+
+# Create directory where authorized images for each node are listed
+if [ ! -e /admin ] 
+then
+    echo ""
+    echo "/admin does not exist. Creating directory"
+    mkdir /admin
+fi
+
+if [ ! -e "/admin/hocker-images" ] 
+then
+    echo ""
+    echo "Creating authorized images directory /admin/hocker-images"
+    mkdir /admin/hocker-images
+    chmod 700 /admin/hocker-images
+else 
+    echo ""
+    echo "/admin/hocker-images already exists. Skipping creation of directory"
+fi
+
+if [ "$installation" == "simple" ]
+then
+    echo ""
+    echo "Creating empty authorized images file in /admin/hocker-images"
+    touch /admin/hocker-images/$(hostname)
+
+    echo ""
+    echo "Simple installation complete"
+    echo ""
+    echo "To finish Hocker configuration:"
+    echo "* Populate the authorized images file in /admin/hocker-images"
+    echo "* Add users to the hocker group"
+    echo ""
+    exit 0
+fi
+
+if [ "$installation" == "modified" ]
+then
+    echo ""
+    echo "Creating empty authorized images file directory /admin/hocker-images"
+    mkdir /admin/hocker-images/
+
+    echo ""
+    echo "Modified installation complete"
+    echo ""
+    echo "To finish Hocker configuration:"
+    echo "* Follow the  modified installation installation guide (hocker/modified-installation.md) for further instructions"
+    echo ""
+    exit 0
+fi
+
+# Create empty authorized images files for example nodes
+echo ""
+echo "Creating empty authorized images for nodes listed in /usr/local/sbin/bhosts"
+for host in `grep -v \# /usr/local/sbin/bhosts`
+do
+    touch /admin/hocker-images/${host}
+done
+
+echo ""
+echo "Copying user account data to compute nodes"
+bsync
+
+# Copy Hocker bundle to all of the compute nodes and create link to /usr/bin/
+echo ""
+echo "Copying Hocker to compute nodes"
+bpushdir /usr/bin/hocker1.0/ /usr/bin/hocker1.0/
+
+echo ""
+echo "Changing permissions of hocker executable in /usr/bin/hocker1.0/hocker"
+bexec chgrp hocker /usr/bin/hocker1.0/hocker
+bexec chmod 6750 /usr/bin/hocker1.0/hocker
+    
+# Set permissions on Hocker files
+echo ""
+echo "Changing permissions of Hocker files in /usr/bin/hocker1.0/files"
+bexec chmod 700 /usr/bin/hocker1.0/files/*
+
+echo ""
+echo "Creating a symlink from hocker1.0 bundle to /usr/bin/hocker"
+bexec ln -s /usr/bin/hocker1.0/hocker /usr/bin/hocker
+    
+# Configure Hocker for Slurm
+echo ""
+echo "Configuring Hocker for Slurm"
+
+# Create directory where Slurm environment variable files are created
+if [ ! -e "/tmp/hocker" ] 
+then
+    echo ""
+    echo "Creating /tmp/hocker to store environment variable files on all nodes"
+    mkdir /tmp/hocker
+    bexec mkdir /tmp/hocker
+else 
+    echo ""
+    echo "/tmp/hocker already exists. Skipping creation of directory"
+fi
+
+# Create Slurm prolog/epilog scripts to create and remove files containing
+# all of the Slurm environment variables in /tmp/hocker
+echo ""
+echo "Creating Slurm prolog script to create files to store environment variables"
+cat > /etc/slurm/hocker-prolog <<EOL
+#!/bin/bash
+
+env | grep SLURM > /tmp/hocker/\$SLURM_JOB_ID
+EOL
+
+echo ""
+echo "Creating Slurm epilog script to remove environment variable files"
+cat > /etc/slurm/hocker-epilog <<EOL
+#!/bin/bash
+
+rm /tmp/hocker/\$SLURM_JOB_ID
+EOL
+
+# Set permissions on prolog/epilog
+chmod 700 /etc/slurm/hocker-prolog /etc/slurm/hocker-epilog
+
+# Add prolog/epilog lines to /etc/slurm.conf
+echo ""
+echo "Appending Prolog and Epilog lines to /etc/slurm/slurm.conf"
+echo ""
+
+grep "Prolog" /etc/slurm/slurm.conf > /dev/null
+if [ $? == 0 ] 
+then
+    echo "Removing previous Prolog line(s) from /etc/slurm/slurm.conf"
+    echo ""
+    sed -i '/Prolog/d' /etc/slurm/slurm.conf
+fi
+echo "Adding hocker-prolog to /etc/slurm/slurm.conf"
+echo ""
+echo "Prolog=/etc/slurm/hocker-prolog" >> /etc/slurm/slurm.conf
+
+grep "Epilog" /etc/slurm/slurm.conf > /dev/null
+if [ $? == 0 ] 
+then
+    echo "Removing previous Epilog line(s) from /etc/slurm/slurm.conf"
+    echo ""
+    sed -i '/Epilog/d' /etc/slurm/slurm.conf
+fi
+echo "Adding hocker-epilog to /etc/slurm/slurm.conf"
+echo "Epilog=/etc/slurm/hocker-epilog" >> /etc/slurm/slurm.conf
+
+# Copy Slurm files to compute nodes
+echo ""
+echo "Copying prolog/epilog files to compute nodes"
+bpush /etc/slurm/hocker-prolog /etc/slurm/hocker-prolog
+bpush /etc/slurm/hocker-epilog /etc/slurm/hocker-epilog
+
+echo ""
+echo "Copying /etc/slurm/slurm.conf to compute nodes"
+bpush /etc/slurm/slurm.conf /etc/slurm/slurm.conf
+
+# Restart the slurm daemon on compute nodes
+echo ""
+echo "Restarting slurmd service on compute nodes"
+bexec systemctl restart slurmd
+
+echo ""
+echo "Slurm has been configured for Hocker"
+echo ""
+echo "Full installation complete"
+echo ""
+echo "To finish Hocker configuration:"
+echo "* Populate the authorized images files in /admin/hocker-images"
+echo "* Add users to the hocker group"
+echo "* Use 'bsync' command to sync user data across all of the compute nodes"
+echo "* Add /admin/hocker-images to /etc/exports"
+echo ""
+exit 0
