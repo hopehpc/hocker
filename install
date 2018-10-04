@@ -132,7 +132,7 @@ then
     fi
 fi
 
-cd files
+cd src
 
 # Change path in hocker.spec to the current working directory
 echo ""
@@ -154,8 +154,8 @@ mv dist/hocker1.0 /usr/bin/
 
 # Set permissions on Hocker files
 echo ""
-echo "Changing permissions of hocker files in /usr/bin/hocker1.0/files"
-chmod 700 /usr/bin/hocker1.0/files/*
+echo "Changing permissions of hocker files in /usr/bin/hocker1.0/src"
+chmod 700 /usr/bin/hocker1.0/src/*
 
 echo ""
 echo "Creating a symlink from hocker1.0 bundle to /usr/bin/hocker"
@@ -267,8 +267,8 @@ bexec chmod 6750 /usr/bin/hocker1.0/hocker
     
 # Set permissions on Hocker files
 echo ""
-echo "Changing permissions of Hocker files in /usr/bin/hocker1.0/files"
-bexec chmod 700 /usr/bin/hocker1.0/files/*
+echo "Changing permissions of Hocker files in /usr/bin/hocker1.0/src"
+bexec chmod 700 /usr/bin/hocker1.0/src/*
 
 echo ""
 echo "Creating a symlink from hocker1.0 bundle to /usr/bin/hocker"
