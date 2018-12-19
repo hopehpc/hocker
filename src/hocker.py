@@ -40,7 +40,7 @@ import sys
 # The location of the Hocker symlink in /usr/bin
 HOCKER_LN = '/usr/bin/hocker'
 # The relative path to added_files in hocker.spec
-ADDED_FILES = '/usr/bin/hocker1.0/files/'
+ADDED_FILES = '/usr/bin/hocker1.0/src/'
 
 if __name__ == '__main__':
     args = docopt(__doc__,

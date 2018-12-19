@@ -3,15 +3,15 @@
 block_cipher = None
 
 added_files = [
-	( 'hocker-run.py', 'files' ),
-	( 'hocker-images.py', 'files' ),
-	( 'hockernode.py', 'files' ),
-    ( 'hockerslurm.py', 'files' ),
-    ( 'hockerrun.py', 'files' ),
+	( 'hocker-run.py', 'src' ),
+	( 'hocker-images.py', 'src' ),
+	( 'hockernode.py', 'src' ),
+    ( 'hockerslurm.py', 'src' ),
+    ( 'hockerrun.py', 'src' ),
 	]
 
 a = Analysis(['hocker.py'],
-             pathex=['/root/hocker/files'],
+             pathex=['/root/hocker/src'],
              binaries=[],
              datas= added_files,
              hiddenimports=[],
