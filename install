@@ -132,6 +132,8 @@ then
     fi
 fi
 
+pip install -r requirements.txt
+
 cd src
 
 # Change path in hocker.spec to the current working directory
