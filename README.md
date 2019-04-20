@@ -92,6 +92,7 @@ List the authorized images on node `node21`:</br></br>
 * Linux - tested distributions:
    * CentOS 7.5
 * Docker
+* [Python 3 and pip](https://github.com/hopehpc/installation-scripts/blob/master/install-python3)
 
 ### Full installation
 * [btools](https://github.com/zachsnoek/btools)
