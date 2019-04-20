@@ -132,7 +132,7 @@ then
     fi
 fi
 
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 cd src
 
@@ -174,11 +174,11 @@ else
     echo ""
     echo "Creating hocker group. Add users to this group to allow access to Hocker"
     groupadd -K GID_MIN=0 -K GID_MAX=999 hocker
-    chgrp hocker /usr/bin/hocker1.0/hocker
 fi
 
 echo ""
-echo "Changing permissions of hocker executable in /usr/bin/hocker1.0/hocker"
+echo "Changing ownership and permissions of hocker executable in /usr/bin/hocker1.0/hocker"
+chgrp hocker /usr/bin/hocker1.0/hocker
 chmod 6750 /usr/bin/hocker1.0/hocker
 
 # Create the dockerroot user
