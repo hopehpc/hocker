@@ -1,5 +1,7 @@
 # hocker
 Hocker is a Python 3 wrapper to enable secure Docker container usage in an HPC cluster.
+
+*Hocker is currently under development and not fit for production use.*
 </br></br>
 
 ## Description
